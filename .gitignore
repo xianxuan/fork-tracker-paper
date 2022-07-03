@@ -274,3 +274,6 @@ TSWLatexianTemp*
 
 # Makeindex log files
 *.lpz
+
+raw_pic/
+materials/
