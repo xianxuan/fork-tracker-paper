@@ -13,7 +13,6 @@
 \usepackage{booktabs}
 \usepackage{multirow}
 \usepackage{xcolor}
-\usepackage{subfig}
 \usepackage{subfloat}
 % \usepackage{subfigure}
 \hyphenation{op-tical net-works semi-conduc-tor IEEE-Xplore}
@@ -131,9 +130,16 @@ First, when the vehicle is driving on a normal road, the map-matching method is 
 
 \section{Driving Intention Recognition}\label{sec:image}
 We utilize a deep learning model to predict the driver's driving intention via the picture collected from the dashcam.
-We firstly divide driving intentions into four categories, then design a model that can learn drivers' driving intention from a single image. 
-Because the model runs on mobile devices, it needs to be lightweight.
+In this section, we first introduce our motivation for driving intention recognition, and then design a model that can learn the driver's driving intention from a single image. 
+% Because the model runs on mobile devices, it needs to be lightweight.
 \subsection{Driving intention}
+To detect vehicle yawing effectively, we desire to be able to forecast the driving intention of the vehicle before it enters the fork road. 
+However, we cannot obtain information through GPS about whether the vehicle is yawing in advance. 
+By observing other sensor data, we discovered that both IMU and image contain predictive information for yawing.
+In addition, compared to the lane change information from the IMU that does not appear stable, the image can always reveal the road the vehicle is about to enter.
+Therefore, as long as images from ubiquitous dashcams are successfully used, we can achieve the predictive ability of vehicle yawing by predicting driving intentions.
+
+
 The driving intention is the learning target of the nerual network and we define as 4 categories: 
 % \begin{equation}
     $$Target: \{ left, right, middle, unknown\}$$
