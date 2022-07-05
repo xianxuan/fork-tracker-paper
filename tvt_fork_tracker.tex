@@ -122,32 +122,42 @@ Fig. \ref{fig:SystemOverview} shows our system architecture.
 First, when the vehicle is driving on a normal road, the map-matching method is used to locate the vehicle through GPS and road information. When meeting a fork road, our system will input continuous single image captured by the dashcam into the deep learning model to predict the driver's driving intention. At the same time, we will use IMU event detection to determine whether the vehicle drives onto a slope, changed lanes, etc. Finally, the particle filter fuses the IMU event detection results and driving intention results with GPS and road information to track the vehicle and predict whether it is yawing. 
 % In the following sections, we will explain them in sequence.
 
+\section{Driving Intention Recognition}\label{sec:image}
+We utilize a deep learning model to predict the driver's driving intention via the picture collected from the dashcam.
+In this section, we first introduce our motivation for driving intention recognition, and then design a model that can learn the driver's driving intention from a single image.
+
+\begin{figure}[htbp]
+    \centerline{\includegraphics[width=0.5\textwidth]{fig/intention.pdf}}
+    \caption{Four categories of intention.}
+    \label{fig:intent}
+\end{figure}
+
 \begin{figure*}[htbp]
     \centerline{\includegraphics[width=1\textwidth]{fig/net.pdf}}
     \caption{Model architecture. }
     \label{fig:net}
 \end{figure*}
-
-\section{Driving Intention Recognition}\label{sec:image}
-We utilize a deep learning model to predict the driver's driving intention via the picture collected from the dashcam.
-In this section, we first introduce our motivation for driving intention recognition, and then design a model that can learn the driver's driving intention from a single image. 
+ 
 % Because the model runs on mobile devices, it needs to be lightweight.
 \subsection{Driving intention}
-To detect vehicle yawing effectively, we desire to be able to forecast the driving intention of the vehicle before it enters the fork road. 
-However, we cannot obtain information through GPS about whether the vehicle is yawing in advance. 
+To detect vehicle yawing effectively, we desire to forecast the driving intention of the vehicle before it enters the fork road. 
+However, GPS cannot give predictions.
 By observing other sensor data, we discovered that both IMU and image contain predictive information for yawing.
-In addition, compared to the lane change information from the IMU that does not appear stable, the image can always reveal the road the vehicle is about to enter.
-Therefore, as long as images from ubiquitous dashcams are successfully used, we can achieve the predictive ability of vehicle yawing by predicting driving intentions.
+In addition, compared to the lane change information from the IMU that does not appear stable, the image can always reveal the road the vehicle is about to enter (e.g. Fig. \ref{fig:intent}).
+Therefore, as long as images from ubiquitous dashcams are successfully used, we can achieve the predictive ability of vehicle yawing.
 
+In fact, Casas et al. \cite{casas2018intentnet} have proposed the prediction of vehicle driving intention through neural network back in 2018. But instead of using several data to predict complicated intentions such as vehicle trajectories, we only need to know which road the vehicle is going. Therefore, we divide the intention into four categories: 
 
-The driving intention is the learning target of the nerual network and we define as 4 categories: 
+% The driving intention is the learning target of the nerual network and we define as 4 categories: 
 % \begin{equation}
     $$Target: \{ left, right, middle, unknown\}$$
 % \end{equation}
+% We describe the driving intention as directions since drivers have to choose one direction to enter when facing a fork road.
 
-We describe the driving intention as directions since drivers have to choose one direction to enter when facing a fork road.
-$Left$ means that the vehicle drives towards left when facing to the fork road, and $right$ is opposite.
+As shown in Fig. \ref{fig:intent}, $Left$ means that the vehicle drives towards left when facing to the fork road, and $right$ is opposite.
 $Middle$ only appears when there are three or more alternative roads, and the vehicle drives towards middle. The most special one is $unknown$ due to the driving intention cannot be clearly understood in some cases. For instance, the driving direction cannot be distinguished when the fork section has not yet reached, or there is something (e.g. other vehicle, tree, etc) blocking the front.
+
+
 
 \subsection{Model}
 Our network design is based on MobileNetV3 \cite{mobilenetv3}, which has been proven to be a very effective image classification network. MobileNetV3 is a very lightweight convolutional neural network with a good performance on mobile devices. In addition, \cite{mobilenetv3} defines the net of two scales: large and small. The small one is targeted at lower resource. Based on MobileNetV3-Small, we carried out adaptive parameter optimization and compression. On the premise of ensuring the accuracy, we reduced the number of parameters of the model to improve the computational efficiency. The model structure is shown in the Fig. \ref{fig:net}.
