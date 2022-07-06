@@ -69,7 +69,7 @@ Lei~Liu
     \subfloat[]
     {
         \begin{minipage}{4cm}\centering
-        \includegraphics[scale=0.17]{fig/yawing.pdf}
+        \includegraphics[scale=0.23]{fig/intro_a.pdf}
         \end{minipage}
     }\subfloat[]
     {
@@ -86,7 +86,7 @@ The most basic and traditional method is map-matching, which locates the vehicle
 % Existing methods for the yawing detection problem, including map-matching, barometer-based, feature-based and ERNet (Elevated Road Network). The map-matching method locates the vehicle based on GPS signals and road information, the feature-based method detects yawing based on satellite signals and IMU data, and the barometer-based method uses the barometer to detect the air pressure to determine whether the vehicle is driving onto an elevated road. ERNet method detects whether a vehicle drive onto an elevated road through a deep learning model. However, the above methods have some problems, such as the accuracy is affected by the GPS signal, the detection delay is long, and the average recognition distance is long.
 In this paper, we propose a novel yawing detection framework, which innovatively utilizes image data (shows in Fig. \ref{fig:intro} (b)) to identify the driver's driving intention and uses inertial data to detect vehicle turning to obtain the prediction information of vehicle yawing. Further, we provide real-time and robust yawing detection and tracking by combining these predictions with GPS and road information.\IEEEpubidadjcol
 
-Despite its potentials, a robust yawing detection and tracking system is far from straightforward. First, the road conditions are very complex, and it is difficult to judge the driver's driving intention through the images captured by the dashcam; secondly,effectively fusing multi-source data and apply it to yawing detection is worth considering; finally, the computing power of mobile devices is limited, and the balance between accuracy and operation speed is also a challenge.
+Despite its potentials, a robust yawing detection and tracking system is far from straightforward. First, the road conditions are very complex, and it is difficult to judge the driver's driving intention through the images captured by the dashcam; secondly, effectively fusing multi-source data and apply it to yawing detection is worth considering; finally, the computing power of mobile devices is limited, and the balance between accuracy and operation speed is also a challenge.
 
 In summary, we make the following contributions:
 \begin{itemize}
@@ -134,17 +134,13 @@ In this section, we first introduce our motivation for driving intention recogni
 
 \begin{figure*}[htbp]
     \centerline{\includegraphics[width=1\textwidth]{fig/net.pdf}}
-    \caption{Model architecture. }
+    \caption{Model architecture. Input data is a single RGB image. The data dimension is increased by the first layer of convolution to avoid the problem of information loss due to ReLU and low dimension as \cite{mobilenetv2} proposed. Then the \textit{Depthwise Separable convolution} \cite{howard2017mobilenets} block encode the features, which effectively reduces the parameters but maintains high accuracy. And \textit{Invert Residual} \cite{mobilenetv2} blocks increase the expressiveness of nonlinear per-channel transformations by connecting the input and output. Note that only if input and output have the same number of channels can they be connected. Finally, features are processed into the four outputs by an efficient encoder \cite{mobilenetv3}. }
     \label{fig:net}
 \end{figure*}
  
 % Because the model runs on mobile devices, it needs to be lightweight.
 \subsection{Driving intention}
-To detect vehicle yawing effectively, we desire to forecast the driving intention of the vehicle before it enters the fork road. 
-However, GPS cannot give predictions.
-By observing other sensor data, we discovered that both IMU and image contain predictive information for yawing.
-In addition, compared to the lane change information from the IMU that does not appear stable, the image can always reveal the road the vehicle is about to enter (e.g. Fig. \ref{fig:intent}).
-Therefore, as long as images from ubiquitous dashcams are successfully used, we can achieve the predictive ability of vehicle yawing.
+To detect vehicle yawing effectively, we desire to forecast the driving intention of the vehicle before it enters the fork road. However, GPS cannot give predictions. By observing other sensor data, we discovered that both IMU and image contain predictive information for yawing. In addition, compared to the lane change information from the IMU that does not appear stable, the image can always reveal the road the vehicle is about to enter (e.g. Fig. \ref{fig:intent}). Therefore, as long as images from ubiquitous dashcams are successfully used, we can achieve the predictive ability of vehicle yawing.
 
 In fact, Casas et al. \cite{casas2018intentnet} have proposed the prediction of vehicle driving intention through neural network back in 2018. But instead of using several data to predict complicated intentions such as vehicle trajectories, we only need to know which road the vehicle is going. Therefore, we divide the intention into four categories: 
 
@@ -154,17 +150,17 @@ In fact, Casas et al. \cite{casas2018intentnet} have proposed the prediction of 
 % \end{equation}
 % We describe the driving intention as directions since drivers have to choose one direction to enter when facing a fork road.
 
-As shown in Fig. \ref{fig:intent}, $Left$ means that the vehicle drives towards left when facing to the fork road, and $right$ is opposite.
-$Middle$ only appears when there are three or more alternative roads, and the vehicle drives towards middle. The most special one is $unknown$ due to the driving intention cannot be clearly understood in some cases. For instance, the driving direction cannot be distinguished when the fork section has not yet reached, or there is something (e.g. other vehicle, tree, etc) blocking the front.
+As shown in Fig. \ref{fig:intent}, $Left$ means that the vehicle drives towards left when facing to the fork road, and $right$ is opposite. $Middle$ only appears when there are three or more alternative roads, and the vehicle drives towards middle. The most special one is $unknown$ due to the driving intention cannot be clearly understood in some cases. For instance, the driving direction cannot be distinguished when the fork section has not yet reached, or there is something (e.g. other vehicle, tree, etc) blocking the front.
 
-
+At this point, we define the intention recognition problem as a classification problem, and we can choose dozens of high-precision image encoders, such as Inception \cite{inceptionv3}, ResNet \cite{he2016deep}, Vision Transformer \cite{vit}, MobileNet \cite{mobilenetv3}, etc.
+Nevertheless, our system is oriented toward edge devices, such as mobile phones or onboard computing platforms, so we need to balance the accuracy and model computation loss when designing the model.
 
 \subsection{Model}
-Our network design is based on MobileNetV3 \cite{mobilenetv3}, which has been proven to be a very effective image classification network. MobileNetV3 is a very lightweight convolutional neural network with a good performance on mobile devices. In addition, \cite{mobilenetv3} defines the net of two scales: large and small. The small one is targeted at lower resource. Based on MobileNetV3-Small, we carried out adaptive parameter optimization and compression. On the premise of ensuring the accuracy, we reduced the number of parameters of the model to improve the computational efficiency. The model structure is shown in the Fig. \ref{fig:net}.
+Our network is designed based on MobileNetV3 \cite{mobilenetv3}, which has been proven to be a very effective image classification network. 
+% MobileNetV3 is a very lightweight convolutional neural network with a good performance on mobile devices. 
+In addition, \cite{mobilenetv3} defines the net of two scales: large and small. The small one is targeted at lower resource. Based on MobileNetV3-Small, we carried out adaptive parameter optimization and compression. On the premise of ensuring the accuracy, we reduced the number of parameters of the model to improve the computational efficiency. The model structure is shown in the Fig. \ref{fig:net}.
 
-Input data is a single RGB image. The data dimension is increased by the first layer of convolution to avoid the problem of information loss due to ReLU and low dimension as \cite{mobilenetv2} proposed. Then the \textit{Depthwise Separable convolution} \cite{howard2017mobilenets} block encode the features, which effectively reduces the parameters but maintains high accuracy. And \textit{Invert Residual} \cite{mobilenetv2} blocks increase the expressiveness of nonlinear per-channel transformations by connecting the input and output. Note that only if input and output have the same number of channels can they be connected. Finally, features are processed into the four outputs by an efficient encoder \cite{mobilenetv3}. 
-
-Compared to MobileNetV3-Small \cite{mobilenetv3}, we abandon the \textit{Sqeeze-and-Excite} \cite{hu2018squeeze} block and \textit{h-swish} nonlinearity activation function since they introduce computation but few improvements in our problem.  
+Compared to MobileNetV3 \cite{mobilenetv3}, we abandon the \textit{Sqeeze-and-Excite} \cite{hu2018squeeze} block and \textit{h-swish} nonlinearity activation function since they introduce computation but few improvements in our problem.  
 Moreover, we modify the channels from 1024 to 256 in the last convolution layer which can significantly reduce the number of parameters but with only a slight loss of accuracy in our system. Detailed evaluation will be shown in the experiments section.
 
 \section{Tracking}\label{sec:tracking}
