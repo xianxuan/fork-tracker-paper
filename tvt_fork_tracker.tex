@@ -100,13 +100,33 @@ In section \ref{sec:image}, we will describe the driving intention recognition n
 The system of tracking is presented in section \ref{sec:tracking}.
 And section \ref{sec:exp} introduces our experimental design, results, and analysis of the results in detail.
 
-\section{Related Work}
-When meeting a fork road, drivers are always confused about the planned route. Therefore, the detection of elevated and fork roads has become a hot topic in yawing detection research.
+\section{Motivation}
 
-% Existing elevated detection methods mainly include Map-matching, Barometer-based, Feature-based and ERNet. 
-Existing detection methods are mostly based on map-matching, barometer, feature and modeling GPS.
-Lan Li \cite{li2012azimuth} proposed a map-matching method, which snaps a series of GPS points onto the map to estimate the trajectory of vehicles, and combine the GPS points with the azimuth of the vehicle to track the vehicle more precisely and detect whether it is yawing. Y. Gong et al. (2015) \cite{gong2015deel} proposed a feature-based method, which is based on the following four features: 1. Velocity variance; 2. Average number of tracked satellites; 3. Minimum Z-axis gravity component; 4. Z-axis linear acceleration variance. When people drive on the elevated road, the Z-axis gravity component of sensors will fluctuate, and the average number of tracking satellites will also change with the increase of altitude. So driving on the elevated road can be detected.The above two methods are affected by the GPS accuracy. M. Won et al. (2017) \cite{won2017hybridbaro} proposed a barometer-based method, which combines GPS data and smartphone barometer data. The air pressure on elevated road and surface road is different, so we can judge whether the vehicle is on an elevated. But air pressure is susceptible to speed. As the speed increases, the air pressure decreases. In addtion, not every device equips with barometer. Xiaobing Zhang et al. (2020) \cite{zhang2020elevated} proposed a neural network ERNet (Elevated Road Network) to identify whether a vehicle is driving on an elevated or not. This method inputs 4 high-level features into the neural network: 1. SPP; 2. group ID; 3. elevated road distance; 4 sequential speed to identify the road type through the output of the neural network. SPP refers to the distribution of satellite signals, which are very different between a vehicle on a surface road and on an elevated road. And the method divides roads into multiple groups for analysis. However, when GNSS data is missing, it will adversely affect feature 1, which in turn affects the output. The delay of the above four methods is relatively high, so that the yawing cannot be detected in time.
-Moreover, \cite{kikuchi2014occluded} proposed a method to distinguish the side road from main road through image. It converts the images captured by the vehicle single camera into IPM images through the inverse perspective transformation method, and the road texture is used to determine whether there is a side road ahead. But it cannot detect whether the vehicle is yawing.
+\subsection{Detection or Prediction}
+To detect vehicle yawing effectively, we desire to forecast the driving intention of the vehicle before it enters the fork road. However, GPS cannot give predictions. By observing other sensor data, we discovered that both IMU and image contain predictive information for yawing. In addition, compared to the lane change information from the IMU that does not appear stable, the image can always reveal the road the vehicle is about to enter (e.g. Fig. \ref{fig:intent}). Therefore, as long as images from ubiquitous dashcams are successfully used, we can achieve the predictive ability of vehicle yawing.
+
+\begin{figure}[htbp]
+    \centerline{\includegraphics[width=0.5\textwidth]{fig/intention.pdf}}
+    \caption{Four categories of intention.}
+    \label{fig:intent}
+\end{figure}
+
+In fact, Casas et al. \cite{casas2018intentnet} have proposed the prediction of vehicle driving intention through neural network back in 2018. But instead of using several data to predict complicated intentions such as vehicle trajectories, we only need to know which road the vehicle is going. Therefore, we divide the intention into four categories: 
+
+% The driving intention is the learning target of the nerual network and we define as 4 categories: 
+% \begin{equation}
+    $$Intentions: \{ left, right, middle, unknown\}$$
+% \end{equation}
+% We describe the driving intention as directions since drivers have to choose one direction to enter when facing a fork road.
+
+As shown in Fig. \ref{fig:intent}, $Left$ means that the vehicle drives towards left when facing to the fork road, and $right$ is opposite. $Middle$ only appears when there are three or more alternative roads, and the vehicle drives towards middle. The most special one is $unknown$ due to the driving intention cannot be clearly understood in some cases. For instance, the driving direction cannot be distinguished when the fork section has not yet reached, or there is something (e.g. other vehicle, tree, etc) blocking the front.
+
+At this point, we define the intention recognition problem as a classification problem, and we can choose dozens of high-precision image encoders, such as Inception \cite{inceptionv3}, ResNet \cite{he2016deep}, Vision Transformer \cite{vit}, MobileNet \cite{mobilenetv3}, etc.
+Nevertheless, our system is oriented toward edge devices, such as mobile phones or onboard computing platforms, so we need to balance the accuracy and model computation loss when designing the model.
+
+\subsection{Runing on Mobile Devices}
+
+\subsection{Multi-source Fusion}
 
 \section{System Overview}\label{sec:overview}
 In this paper, we propose an accurate and real-time yawing detection framework by fusing multi-source data through particle filter. 
@@ -122,15 +142,12 @@ Fig. \ref{fig:SystemOverview} shows our system architecture.
 First, when the vehicle is driving on a normal road, the map-matching method is used to locate the vehicle through GPS and road information. When meeting a fork road, our system will input continuous single image captured by the dashcam into the deep learning model to predict the driver's driving intention. At the same time, we will use IMU event detection to determine whether the vehicle drives onto a slope, changed lanes, etc. Finally, the particle filter fuses the IMU event detection results and driving intention results with GPS and road information to track the vehicle and predict whether it is yawing. 
 % In the following sections, we will explain them in sequence.
 
-\section{Driving Intention Recognition}\label{sec:image}
+\section{Fork Tracker}
+% \section{Driving Intention Recognition}\label{sec:image}
+\subsection{Driving Intention Recognition}\label{sec:image}
 We utilize a deep learning model to predict the driver's driving intention via the picture collected from the dashcam.
 In this section, we first introduce our motivation for driving intention recognition, and then design a model that can learn the driver's driving intention from a single image.
 
-\begin{figure}[htbp]
-    \centerline{\includegraphics[width=0.5\textwidth]{fig/intention.pdf}}
-    \caption{Four categories of intention.}
-    \label{fig:intent}
-\end{figure}
 
 \begin{figure*}[htbp]
     \centerline{\includegraphics[width=1\textwidth]{fig/net.pdf}}
@@ -139,31 +156,17 @@ In this section, we first introduce our motivation for driving intention recogni
 \end{figure*}
  
 % Because the model runs on mobile devices, it needs to be lightweight.
-\subsection{Driving intention}
-To detect vehicle yawing effectively, we desire to forecast the driving intention of the vehicle before it enters the fork road. However, GPS cannot give predictions. By observing other sensor data, we discovered that both IMU and image contain predictive information for yawing. In addition, compared to the lane change information from the IMU that does not appear stable, the image can always reveal the road the vehicle is about to enter (e.g. Fig. \ref{fig:intent}). Therefore, as long as images from ubiquitous dashcams are successfully used, we can achieve the predictive ability of vehicle yawing.
+% \subsection{Driving intention}
 
-In fact, Casas et al. \cite{casas2018intentnet} have proposed the prediction of vehicle driving intention through neural network back in 2018. But instead of using several data to predict complicated intentions such as vehicle trajectories, we only need to know which road the vehicle is going. Therefore, we divide the intention into four categories: 
-
-% The driving intention is the learning target of the nerual network and we define as 4 categories: 
-% \begin{equation}
-    $$Target: \{ left, right, middle, unknown\}$$
-% \end{equation}
-% We describe the driving intention as directions since drivers have to choose one direction to enter when facing a fork road.
-
-As shown in Fig. \ref{fig:intent}, $Left$ means that the vehicle drives towards left when facing to the fork road, and $right$ is opposite. $Middle$ only appears when there are three or more alternative roads, and the vehicle drives towards middle. The most special one is $unknown$ due to the driving intention cannot be clearly understood in some cases. For instance, the driving direction cannot be distinguished when the fork section has not yet reached, or there is something (e.g. other vehicle, tree, etc) blocking the front.
-
-At this point, we define the intention recognition problem as a classification problem, and we can choose dozens of high-precision image encoders, such as Inception \cite{inceptionv3}, ResNet \cite{he2016deep}, Vision Transformer \cite{vit}, MobileNet \cite{mobilenetv3}, etc.
-Nevertheless, our system is oriented toward edge devices, such as mobile phones or onboard computing platforms, so we need to balance the accuracy and model computation loss when designing the model.
-
-\subsection{Model}
 Our network is designed based on MobileNetV3 \cite{mobilenetv3}, which has been proven to be a very effective image classification network. 
 % MobileNetV3 is a very lightweight convolutional neural network with a good performance on mobile devices. 
 In addition, \cite{mobilenetv3} defines the net of two scales: large and small. The small one is targeted at lower resource. Based on MobileNetV3-Small, we carried out adaptive parameter optimization and compression. On the premise of ensuring the accuracy, we reduced the number of parameters of the model to improve the computational efficiency. The model structure is shown in the Fig. \ref{fig:net}.
 
 Compared to MobileNetV3 \cite{mobilenetv3}, we abandon the \textit{Sqeeze-and-Excite} \cite{hu2018squeeze} block and \textit{h-swish} nonlinearity activation function since they introduce computation but few improvements in our problem.  
 Moreover, we modify the channels from 1024 to 256 in the last convolution layer which can significantly reduce the number of parameters but with only a slight loss of accuracy in our system. Detailed evaluation will be shown in the experiments section.
+\subsection{Model Compression}\label{sec:pruning}
 
-\section{Tracking}\label{sec:tracking}
+\subsection{Tracking}\label{sec:tracking}
 Beside the intention recognition from images, another core of our system is fusing multi-source data\cite{hostettler2014vehicle} to obtain a more accurate vehicle trajectory. We first briefly describe the Monte Carlo framework we apply, then demonstrate the input to the system, and finally introduce the yawing detection and tracking system we designed in detail.
 
 \begin{figure}[htbp]
@@ -172,7 +175,7 @@ Beside the intention recognition from images, another core of our system is fusi
     \label{fig:track_system}
 \end{figure}
 
-\subsection{Probabilistic Tracking Framework}
+\subsubsection{Probabilistic Tracking Framework}
  We use probabilistic estimation method to estimate the location distribution of the vehicle. Because the measurement errors and noises of different sensors are complex and do not necessarily obey the Gaussian distribution, linear filtering is difficult to solve the problem. Therefore, we adopt a trajectory inference method based on sequential Monte Carlo (i.e., particle filtering). It uses N particles that contains multi-dimensional vectors to represent the state probability distribution of the car at the current time t, and iterate continuously through the following three steps\cite{du2019enhanced}:
 
 \textbf{State update.} 
@@ -367,6 +370,14 @@ This experiment shows the contribution of our two core components to the overall
   \end{table}%
 
 Table \ref{tab:ablation} shows the result as expected, the baseline method with only GPS data is unable to detect yawing in advance and have the worst performance, while adding image recognition data shows a remarkable improvement. Besides, the IMU event data helps to limit the impact of ambiguous data on the detection of pure GPS or image recognition, thus the proposed method gains the best result.
+
+\section{Related Work}
+When meeting a fork road, drivers are always confused about the planned route. Therefore, the detection of elevated and fork roads has become a hot topic in yawing detection research.
+
+% Existing elevated detection methods mainly include Map-matching, Barometer-based, Feature-based and ERNet. 
+Existing detection methods are mostly based on map-matching, barometer, feature and modeling GPS.
+Lan Li \cite{li2012azimuth} proposed a map-matching method, which snaps a series of GPS points onto the map to estimate the trajectory of vehicles, and combine the GPS points with the azimuth of the vehicle to track the vehicle more precisely and detect whether it is yawing. Y. Gong et al. (2015) \cite{gong2015deel} proposed a feature-based method, which is based on the following four features: 1. Velocity variance; 2. Average number of tracked satellites; 3. Minimum Z-axis gravity component; 4. Z-axis linear acceleration variance. When people drive on the elevated road, the Z-axis gravity component of sensors will fluctuate, and the average number of tracking satellites will also change with the increase of altitude. So driving on the elevated road can be detected.The above two methods are affected by the GPS accuracy. M. Won et al. (2017) \cite{won2017hybridbaro} proposed a barometer-based method, which combines GPS data and smartphone barometer data. The air pressure on elevated road and surface road is different, so we can judge whether the vehicle is on an elevated. But air pressure is susceptible to speed. As the speed increases, the air pressure decreases. In addtion, not every device equips with barometer. Xiaobing Zhang et al. (2020) \cite{zhang2020elevated} proposed a neural network ERNet (Elevated Road Network) to identify whether a vehicle is driving on an elevated or not. This method inputs 4 high-level features into the neural network: 1. SPP; 2. group ID; 3. elevated road distance; 4 sequential speed to identify the road type through the output of the neural network. SPP refers to the distribution of satellite signals, which are very different between a vehicle on a surface road and on an elevated road. And the method divides roads into multiple groups for analysis. However, when GNSS data is missing, it will adversely affect feature 1, which in turn affects the output. The delay of the above four methods is relatively high, so that the yawing cannot be detected in time.
+Moreover, \cite{kikuchi2014occluded} proposed a method to distinguish the side road from main road through image. It converts the images captured by the vehicle single camera into IPM images through the inverse perspective transformation method, and the road texture is used to determine whether there is a side road ahead. But it cannot detect whether the vehicle is yawing.
 
 \section{Conclusion}
 In this paper we introduced a novel framework to tracking vehicle on the fork road through image, IMU and GPS data. We designed a lightweight deep learning model to recognize the driver's intention when facing the fork. And we constructed a tracking system based on particle filter which combinated IMU event detection, image recognition and road information. 
