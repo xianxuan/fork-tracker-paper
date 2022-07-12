@@ -107,7 +107,7 @@ To detect vehicle yawing effectively, we desire to forecast the driving intentio
 
 \begin{figure}[htbp]
     \centerline{\includegraphics[width=0.5\textwidth]{fig/intention.pdf}}
-    \caption{Four categories of intention.}
+    \caption{The four images captured by dashcam correspond to the four intentions. }
     \label{fig:intent}
 \end{figure}
 
@@ -125,8 +125,16 @@ At this point, we define the intention recognition problem as a classification p
 Nevertheless, our system is oriented toward edge devices, such as mobile phones or onboard computing platforms, so we need to balance the accuracy and model computation loss when designing the model.
 
 \subsection{Runing on Mobile Devices}
+In order to run the intent recognition model as efficiently as possible on mobile devices, we try to compress it. The operation efficiency of the model is mainly affected by the number of parameters and computation:
+\begin{itemize}
+    \item The number of parameters directly determines the space occupied by the model. The reduction of model parameters allows the model to consume less memory at runtime. In deep learning models, the parameters of the fully connected layer are often very dense.
+    \item The computation affects the inference time and power consumption required. The smaller the computation, the less inference time and energy the device costs. In general, convolutional neural networks involve a great deal of computational cost.
+\end{itemize}
+
+Previous works have proposed many methods to compress models, such as pruning, knowledge distilling, low-rank factorization, model quantization, etc. In addition, some ingenious architectures (i.e., MobileNet, ShuffleNet) are also the product of the concept of model compression. Among them, the pruning method is utilized by many researchers because of its convenience. Filter-based pruning methods can reduce storage usage on devices and decrease computation costs. Therefore, based on the selection and design of the small model, we adopt filter-based pruning to compress it further.
 
 \subsection{Multi-source Fusion}
+
 
 \section{System Overview}\label{sec:overview}
 In this paper, we propose an accurate and real-time yawing detection framework by fusing multi-source data through particle filter. 
