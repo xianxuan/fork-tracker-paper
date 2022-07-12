@@ -124,7 +124,7 @@ As shown in Fig. \ref{fig:intent}, $Left$ means that the vehicle drives towards 
 At this point, we define the intention recognition problem as a classification problem, and we can choose dozens of high-precision image encoders, such as Inception \cite{inceptionv3}, ResNet \cite{he2016deep}, Vision Transformer \cite{vit}, MobileNet \cite{mobilenetv3}, etc.
 Nevertheless, our system is oriented toward edge devices, such as mobile phones or onboard computing platforms, so we need to balance the accuracy and model computation loss when designing the model.
 
-\subsection{Runing on Mobile Devices}
+\subsection{Running on Mobile Devices}
 
 \subsection{Multi-source Fusion}
 
@@ -165,6 +165,21 @@ In addition, \cite{mobilenetv3} defines the net of two scales: large and small. 
 Compared to MobileNetV3 \cite{mobilenetv3}, we abandon the \textit{Sqeeze-and-Excite} \cite{hu2018squeeze} block and \textit{h-swish} nonlinearity activation function since they introduce computation but few improvements in our problem.  
 Moreover, we modify the channels from 1024 to 256 in the last convolution layer which can significantly reduce the number of parameters but with only a slight loss of accuracy in our system. Detailed evaluation will be shown in the experiments section.
 \subsection{Model Compression}\label{sec:pruning}
+According to the prediction of driving intention and the fusion of multi-source sensor data, we construct a yawing detection system based on sequential Monte Carlo (Particle filter). However, during the real-world experiments, we found that the performance of driving intention detection model is far from that when using local datasets, and has a negative impact on the accuracy of the final results of the whole system. This is because the calculation time of intention model is too long, so the information given by the image cannot be fed back to the system in time. Different from the dataset with a given timestamp, the state of the vehicle is always changing, and the decision given by the system comes from the state of the previous moment. Moreover, the system includes IMU, GPS and other source data with different observation frequencies, when fusing through particle filter, we need to align their timestamps. Therefore, the performance of the system depends on the consistency between the given decision and the real state. Training a compressed model to improve the efficiency and the prediction accuracy is very important for the optimization of the model.
+
+The main methods of model compression are model distillation, quantization and pruning. Model distillation uses a small model to learn a large model with a sparse network through knowledge transfer, and finally obtains a lightweight model; model quantization reduces the accuracy of some parameters in the trained model to achieve the effect of model compression; model pruning sorted the parameters according to the importance of norm or weight, and the parameters with low importance are set to zero or directly pruned.
+
+The common method of model pruning is to fine-tune the trained model. It will sort the weights of its convolutional layer parameters and set the lower weights to zero or calculate the norm of the convolutional layer filter and remove smaller one. However, these methods produce other problems. Although they improve the efficiency of the model, the accuracy will decrease greatly. The prediction of driving intention is the main data source in this system, so the decrease of its accuracy will directly influence the prediction accuracy of the system at the same time.
+
+To solve the above problems, we propose the filter pruning method based on geometric median points and combine it with our application scenarios. Through our experiments, it can be proved that while improving the efficiency of the model, it can achieve an accuracy approach to the data set experiment. The basic idea is to synchronize the model pruning with the model training process and complete it by calculating the geometric median point. In addition, this method no longer clips filters, but performs a zeroing operation, and the clipped filter will still participate in the training of the next epoch in its complete form. Such a pruning method can reduce the norm restriction of the filter, and make the pruned model still maintain a high learning ability to avoid performance degradation. Pruning is performed after each epoch training. The specific steps are as follows: 
+\begin{itemize}
+  \item [1)] 
+  Obtain all convolutional layers that need to be pruned and the pruning rate.       
+  \item [2)]
+  Calculate the Euclidean distance of all filters in the convolutional layer, and obtain the Euclidean distance Geometric median point. 
+  \item [3)]
+  Set all parameters of filters close to the geometric median point to zero; then, the model will continue to train for the next epoch.
+\end{itemize}
 
 \subsection{Tracking}\label{sec:tracking}
 Beside the intention recognition from images, another core of our system is fusing multi-source data\cite{hostettler2014vehicle} to obtain a more accurate vehicle trajectory. We first briefly describe the Monte Carlo framework we apply, then demonstrate the input to the system, and finally introduce the yawing detection and tracking system we designed in detail.
@@ -275,6 +290,9 @@ Finally, the normalization formula of all particles are as follow,
 We implemented particle filter based method to fuse multi-source data to track vehicles accurately and detect yawing. First, we will initialize the particle states. Next, we update them based on image, GPS, and IMU data, and finally resampling. The experimental results show that the method can achieve accurate vehicle tracking.
 
 \section{Implementation on Mobile device}
+In our system, the deep learning model will be deployed on the mobile phones. Since the format of the images captured by the dashcam does not match the requirement of the model input, we use the OpenCV library to process them. The size of the captured image is 1920*1080 pixels. After converting from BGR format to RGB format, resize, and dimension transformation, the image is finally processed into shape of [3,224,224]. In addition, we need to export the model structure and parameters, and load the model on the Android devices through the torch mobile framework. After loading it successfully, the image will be imported into the model and the model will obtain the output for judging the driver's driving intention.
+
+We measured the time occupied by the image processing part and the model running part of the code. We found that the image processing time was longer than the model running time. The image processing time basically does not exceed 100ms, and the model running time does not exceed 60ms. We tested with 20 images, the average image processing time was 72ms, the average model running time was 43ms, and the average total time was 115ms. We also used the image processing tool of Android to process images for comparative experiments and found that the image processing toolkit takes an average of 450ms to process an image. Therefore, it is proved that our image processing method is more time-saving.
 
 \section{Experiments}\label{sec:exp}
 \subsection{Dataset}
