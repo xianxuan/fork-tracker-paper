@@ -133,10 +133,26 @@ In order to run the intent recognition model as efficiently as possible on mobil
     \item The computation affects the inference time and power consumption required. The smaller the computation, the less inference time and energy the device costs. In general, convolutional neural networks involve a great deal of computational cost.
 \end{itemize}
 
-Previous works have proposed many methods to compress models, such as pruning, knowledge distilling, low-rank factorization, model quantization, etc. In addition, some ingenious architectures (i.e., MobileNet, ShuffleNet) are also the product of the concept of model compression. Among them, the pruning method is utilized by many researchers because of its convenience. Filter-based pruning methods can reduce storage usage on devices and decrease computation costs. Therefore, based on the selection and design of the small model, we adopt filter-based pruning to compress it further.
+Previous works have proposed many methods to compress models, such as pruning, knowledge distilling, low-rank factorization, model quantization, etc. In addition, some ingenious architectures (i.e., MobileNet, ShuffleNet) are also the product of the concept of model compression. Among them, many researchers utilize the pruning method because of its convenience. Filter-based pruning methods can reduce device storage usage and decrease computation costs effectively while manageable to deploy. Therefore, based on the selection and design of the small model, we adopt filter-based pruning to compress it further.
+
+However, even though the model could be fast and accurate, it is far from robust to rely only on images for yawing detection.
 
 \subsection{Multi-source Fusion}
+We further improve the stability and usability of the system through the fusion of multi-source data. We divide the available data into four parts: images, IMU, GPS, and road information.
 
+\begin{figure}[htbp]
+    \centerline{\includegraphics[width=0.5\textwidth]{fig/data_freq.pdf}}
+    \caption{The four images captured by dashcam correspond to the four intentions. }
+    \label{fig:data_freq}
+\end{figure}
+\begin{itemize}
+    \item Road information.
+    \item GPS.
+    \item IMU.
+    \item IMG.
+\end{itemize}
+
+Figure. \ref{fig:data_freq} shows the timestamps of different data appearing in a fork tracing process. The GPS and IMU data are continuous, while images are opportunistic. Moreover, the lane change information obtained from the IMU is even more unstable since lane-changing behavior does not always exist. 
 
 \section{System Overview}\label{sec:overview}
 In this paper, we propose an accurate and real-time yawing detection framework by fusing multi-source data through particle filter. 
