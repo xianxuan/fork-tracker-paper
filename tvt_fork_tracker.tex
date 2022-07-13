@@ -101,6 +101,7 @@ The system of tracking is presented in section \ref{sec:tracking}.
 And section \ref{sec:exp} introduces our experimental design, results, and analysis of the results in detail.
 
 \section{Motivation}
+We exposition our consideration on constructing a tracking system to solve the yawing detection issue, including predicting whether the vehicle is yawing in advance, improving the system's efficiency on mobile devices, and integrating multi-source data to make the system more robust.
 
 \subsection{Detection or Prediction}
 To detect vehicle yawing effectively, we desire to forecast the driving intention of the vehicle before it enters the fork road. However, GPS cannot give predictions. By observing other sensor data, we discovered that both IMU and image contain predictive information for yawing. In addition, compared to the lane change information from the IMU that does not appear stable, the image can always reveal the road the vehicle is about to enter (e.g. Fig. \ref{fig:intent}). Therefore, as long as images from ubiquitous dashcams are successfully used, we can achieve the predictive ability of vehicle yawing.
@@ -142,10 +143,10 @@ We further improve the stability and usability of the system through the fusion 
 
 \begin{figure}[htbp]
     \centerline{\includegraphics[width=0.5\textwidth]{fig/data_freq.pdf}}
-    \caption{The four images captured by dashcam correspond to the four intentions. }
+    \caption{The data distribution (except road information) over the time axis. The frequency of the IMU is 50 Hz, the frequency of the GPS is 1 Hz, and the image data is 1-2 Hz. Event detection (lane change) based on IMU data is sometimes unavailable. }
     \label{fig:data_freq}
 \end{figure}
-\begin{itemize}
+\begin{itemize} 
     \item Road information.
     \item GPS.
     \item IMU.
@@ -155,7 +156,7 @@ We further improve the stability and usability of the system through the fusion 
 Figure. \ref{fig:data_freq} shows the timestamps of different data appearing in a fork tracing process. The GPS and IMU data are continuous, while images are opportunistic. Moreover, the lane change information obtained from the IMU is even more unstable since lane-changing behavior does not always exist. 
 
 \section{System Overview}\label{sec:overview}
-In this paper, we propose an accurate and real-time yawing detection framework by fusing multi-source data through particle filter. 
+This paper proposes an accurate and real-time tracking framework for yawing detection.
 % Even when elevated overlaps and fork roads are too close, it can also achieve good results. 
 Fig. \ref{fig:SystemOverview} shows our system architecture.
 
@@ -165,15 +166,14 @@ Fig. \ref{fig:SystemOverview} shows our system architecture.
     \label{fig:SystemOverview}
 \end{figure}
 
-First, when the vehicle is driving on a normal road, the map-matching method is used to locate the vehicle through GPS and road information. When meeting a fork road, our system will input continuous single image captured by the dashcam into the deep learning model to predict the driver's driving intention. At the same time, we will use IMU event detection to determine whether the vehicle drives onto a slope, changed lanes, etc. Finally, the particle filter fuses the IMU event detection results and driving intention results with GPS and road information to track the vehicle and predict whether it is yawing. 
+First, when the vehicle is driving on a normal road, the map-matching method is used to locate the vehicle through GPS and road information. When meeting a fork road, our system will input the image captured by the dashcam into the deep learning model to predict the driver's driving intention. At the same time, we will use IMU event detection to determine whether the vehicle changes lanes. Finally, the particle filter fuses the IMU event detection and driving intention results with GPS and road information to track the vehicle and predict whether it is yawing.
 % In the following sections, we will explain them in sequence.
 
 \section{Fork Tracker}
 % \section{Driving Intention Recognition}\label{sec:image}
 \subsection{Driving Intention Recognition}\label{sec:image}
 We utilize a deep learning model to predict the driver's driving intention via the picture collected from the dashcam.
-In this section, we first introduce our motivation for driving intention recognition, and then design a model that can learn the driver's driving intention from a single image.
-
+In this section, we design a model that can learn the driver's driving intention from a single image.
 
 \begin{figure*}[htbp]
     \centerline{\includegraphics[width=1\textwidth]{fig/net.pdf}}
