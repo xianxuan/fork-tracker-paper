@@ -197,18 +197,41 @@ The main methods of model compression are model distillation, quantization and p
 
 The common method of model pruning is to fine-tune the trained model. It will sort the weights of its convolutional layer parameters and set the lower weights to zero or calculate the norm of the convolutional layer filter and remove smaller one. However, these methods produce other problems. Although they improve the efficiency of the model, the accuracy will decrease greatly. The prediction of driving intention is the main data source in this system, so the decrease of its accuracy will directly influence the prediction accuracy of the system at the same time.
 
+\begin{figure}[htbp]
+    \centerline{\includegraphics[width=0.5\textwidth]{fig/model_pruning.pdf}}
+    \caption{Pruning via Geometric Median.}
+    \label{fig:pruning_median}
+\end{figure}
+
 To solve the above problems, we propose the filter pruning method based on geometric median points and combine it with our application scenarios. Through our experiments, it can be proved that while improving the efficiency of the model, it can achieve an accuracy approach to the data set experiment. The basic idea is to synchronize the model pruning with the model training process and complete it by calculating the geometric median point. In addition, this method no longer clips filters, but performs a zeroing operation, and the clipped filter will still participate in the training of the next epoch in its complete form. Such a pruning method can reduce the norm restriction of the filter, and make the pruned model still maintain a high learning ability to avoid performance degradation. Pruning is performed after each epoch training. The specific steps are as follows: 
-\begin{itemize}
-  \item [1)] 
+\begin{enumerate}
+  \item 
   Obtain all convolutional layers that need to be pruned and the pruning rate.       
-  \item [2)]
+  \item 
   Calculate the Euclidean distance of all filters in the convolutional layer, and obtain the Euclidean distance Geometric median point. 
-  \item [3)]
+  \item 
   Set all parameters of filters close to the geometric median point to zero; then, the model will continue to train for the next epoch.
-\end{itemize}
+\end{enumerate}
 
 \subsection{Tracking}\label{sec:tracking}
 Beside the intention recognition from images, another core of our system is fusing multi-source data\cite{hostettler2014vehicle} to obtain a more accurate vehicle trajectory. We first briefly describe the Monte Carlo framework we apply, then demonstrate the input to the system, and finally introduce the yawing detection and tracking system we designed in detail.
+
+\subsubsection{Data Processing}
+\textbf{Inertial sensors. }
+Our method mainly uses the data of gravity sensor, acceleration sensor and gyroscope sensor inside the mobile phone to estimate the driving trajectory of the vehicle. We transform the mobile phone coordinate system to the car coordinate system \cite{xiao2021many, gao2017smartphone}, and the vehicle trajectory can be obtained by $\Vec{x(t)}=\iint\Vec{a(t)}\mathrm{d}t$. We use the sliding window to detect the vehicle turning events. The window will obtain the change of the z-axis of the gyroscope in a period of time, and then we calculate the difference between the maximum and minimum points in the window. When the midpoint of the window is at the extreme point and the extreme point difference is greater than the threshold, the action of the vehicle is identified as a turn and will be marked. Turning detection is mainly used for yawing recognition in fork road scenes.
+
+\textbf{GPS and road information.}
+When people drive the car, the smartphone will continuously collect GPS data such as longitude and latitude, and the collected GPS data will form the trajectory of the vehicle. The system will project the GPS points to the best matching road in sequence (As shown in Fig. \ref{fig:projection}) and combine GPS data with road information. When the system detects that the distance between the GPS point position and the starting point of the elevated or fork road is less than a certain value, the yawing detection is triggered.
+
+\begin{figure}[htbp]
+    \centerline{\includegraphics[width=0.3\textwidth]{fig/projection.pdf}}
+    \caption{The blue point is the GPS point, and the red point is the projection point.}
+    \label{fig:projection}
+\end{figure}
+
+\textbf{Image prediction result.}
+We improve the confidence of image prediction results (described in \ref{sec:image}) by reducing recall instead of directly using them. 
+In a tracking process, only a few images are needed to have a key impact on the tracking results. But the whole tracking process often obtains several image prediction results. Therefore, we filter each prediction result by setting a threshold. If for an image, the model's prediction probabilities for all classes are lower than the threshold, then we consider the model's output to be invalid. Doing so reduces the recall of the model output, but increases the confidence of the predictions.
 
 \begin{figure}[htbp]
     \centerline{\includegraphics[width=0.48\textwidth]{fig/PF-Systemoverall.pdf}}
@@ -229,25 +252,9 @@ The likelihood probability $p(z_{1:m,t}|\hat{s}_t)$ obtains from the measurement
 To prevent weights from gradually concentrating on a small number of particles (particle degradation), the particle set $S_{t}^{N}$ is resampled after each iteration. We will get a new particle set $S_{t}^{N}$ by random sampling and set all particle weights to be the same $\omega_{t}^{n} = \frac{1}{N}$.
 
 % Next, we explain how to fuse the data in detail .
-\subsection{Input}
-\subsubsection{Inertial sensors}
-Our method mainly uses the data of gravity sensor, acceleration sensor and gyroscope sensor inside the mobile phone to estimate the driving trajectory of the vehicle. We transform the mobile phone coordinate system to the car coordinate system \cite{xiao2021many, gao2017smartphone}, and the vehicle trajectory can be obtained by $\Vec{x(t)}=\iint\Vec{a(t)}\mathrm{d}t$. We use the sliding window to detect the vehicle turning events. The window will obtain the change of the z-axis of the gyroscope in a period of time, and then we calculate the difference between the maximum and minimum points in the window. When the midpoint of the window is at the extreme point and the extreme point difference is greater than the threshold, the action of the vehicle is identified as a turn and will be marked. Turning detection is mainly used for yawing recognition in fork road scenes.
+% \subsection{Input}
 
-\subsubsection{GPS and road information}
-When people drive the car, the smartphone will continuously collect GPS data such as longitude and latitude, and the collected GPS data will form the trajectory of the vehicle. The system will project the GPS points to the best matching road in sequence (As shown in Fig. \ref{fig:projection}) and combine GPS data with road information. When the system detects that the distance between the GPS point position and the starting point of the elevated or fork road is less than a certain value, the yawing detection is triggered.
-
-\begin{figure}[htbp]
-    \centerline{\includegraphics[width=0.3\textwidth]{fig/projection.pdf}}
-    \caption{The blue point is the GPS point, and the red point is the projection point.}
-    \label{fig:projection}
-\end{figure}
-
-\subsubsection{Image prediction result}
-We improve the confidence of image prediction results (described in \ref{sec:image}) by reducing recall instead of directly using them. 
-In a tracking process, only a few images are needed to have a key impact on the tracking results. But the whole tracking process often obtains several image prediction results. Therefore, we filter each prediction result by setting a threshold. If for an image, the model's prediction probabilities for all classes are lower than the threshold, then we consider the model's output to be invalid. Doing so reduces the recall of the model output, but increases the confidence of the predictions.
-
-
-\subsection{Tracking Algorithms}
+% \subsection{Tracking Algorithms}
 
 \subsubsection{Initialization and update}
 
