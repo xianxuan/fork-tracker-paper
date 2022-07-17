@@ -139,20 +139,25 @@ Previous works have proposed many methods to compress models, such as pruning, k
 However, even though the model could be fast and accurate, it is far from robust to rely only on images for yawing detection.
 
 \subsection{Multi-source Fusion}
-We further improve the stability and usability of the system through the fusion of multi-source data. We divide the available data into four parts: images, IMU, GPS, and road information.
+We further improve the stability and usability of the system through the fusion of multi-source data. We divide the available data into four parts: road information, GPS, IMU and image.
 
 \begin{figure}[htbp]
     \centerline{\includegraphics[width=0.5\textwidth]{fig/data_freq.pdf}}
     \caption{The data distribution (except road information) over the time axis. The frequency of the IMU is 50 Hz, the frequency of the GPS is 1 Hz, and the image data is 1-2 Hz. Event detection (lane change) based on IMU data is sometimes unavailable. }
     \label{fig:data_freq}
 \end{figure}
-\begin{itemize} 
-    \item Road information.
-    Road number; the longitude and latitude data of the fork point, yawing detection start point which is about 50 meters away from the fork point,  and points on every fork road.
-    \item GPS.
-    \item IMU.
-    \item IMG.
-\end{itemize}
+
+\textbf{Road information.} 
+We describe a road by coordinates (a coordinate has longitude and latitude), direction, ID, and following-road IDs. The following-road IDs contain all the roads accessed from the current road. We deduce the existence of a fork in virtue of following-road IDs so that we can trigger our fork tracking system in advance. 
+
+\textbf{GPS.}
+
+
+\textbf{IMU.}
+3-axis accelerometer and 3-axis gyroscope are our primary inertial sensors. IMU on edge devices generally do not maintain accurate measurements over long periods but are sensitive to short periods of jitter. We keep tracking via the IMU observations but must eliminate their cumulative errors. Besides, the gyroscope can capture and generate notable signal fluctuations when the vehicle changes lanes. 
+
+\textbf{Image.}
+
 
 Figure. \ref{fig:data_freq} shows the timestamps of different data appearing in a fork tracing process. The GPS and IMU data are continuous, while images are opportunistic. Moreover, the lane change information obtained from the IMU is even more unstable since lane-changing behavior does not always exist. 
 
