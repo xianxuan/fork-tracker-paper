@@ -134,7 +134,7 @@ In order to run the intent recognition model as efficiently as possible on mobil
     \item The computation affects the inference time and power consumption required. The smaller the computation, the less inference time and energy the device costs. In general, convolutional neural networks involve a great deal of computational cost.
 \end{itemize}
 
-Previous works have proposed many methods to compress models, such as pruning, knowledge distilling, low-rank factorization, model quantization, etc. In addition, some ingenious architectures (i.e., MobileNet, ShuffleNet) are also the product of the concept of model compression. Among them, many researchers utilize the pruning method because of its convenience. Filter-based pruning methods can reduce device storage usage and decrease computation costs effectively while manageable to deploy. Therefore, based on the selection and design of the small model, we adopt filter-based pruning to compress it further.
+Previous works have proposed many methods to compress models, such as pruning, knowledge distilling, low-rank factorization, model quantization, etc. In addition, some ingenious architectures (i.e., MobileNet \cite{howard2017mobilenets}, ShuffleNet \cite{zhang2018shufflenet}) are also the product of the concept of model compression. Among them, many researchers utilize the pruning method because of its convenience. Filter-based pruning methods can reduce device storage usage and decrease computation costs effectively while manageable to deploy. Therefore, based on the selection and design of the small model, we adopt filter-based pruning to compress it further.
 
 However, even though the model could be fast and accurate, it is far from robust to rely only on images for yawing detection.
 
@@ -148,18 +148,25 @@ We further improve the stability and usability of the system through the fusion 
 \end{figure}
 
 \textbf{Road information.} 
-We describe a road by coordinates (a coordinate has longitude and latitude), direction, ID, and following-road IDs. The following-road IDs contain all the roads accessed from the current road. We deduce the existence of a fork in virtue of following-road IDs so that we can trigger our fork tracking system in advance. 
+We describe a road by coordinates (a coordinate has longitude and latitude), direction, ID, and following-road IDs. The following-road IDs contain all the roads'ID accessed from the current road. We deduce the existence of a fork in virtue of following-road IDs so that we can trigger our fork tracking system in advance. 
 
-\textbf{GPS.}
+\textbf{GNSS.}
+GNSS provides the receiver with the absolute coordinates of the world. However, the GNSS positioning performance can be severely degraded by the limited satellite visibility, multipath effect, and interference, especially in urban with buildings \cite{zhu2018gnss,hofmann2007gnss}. Although it is possible to reduce the impact of errors by binding GNSS points to the nearest road, this approach is not applicable in the fork road scenario.
 
+% \begin{figure}[htbp]
+%     \centerline{\includegraphics[width=0.3\textwidth]{fig/projection.pdf}}
+%     \caption{The blue point is the GPS point, and the red point is the projection point.}
+%     \label{fig:projection}
+% \end{figure}
 
 \textbf{IMU.}
 3-axis accelerometer and 3-axis gyroscope are our primary inertial sensors. IMU on edge devices generally do not maintain accurate measurements over long periods but are sensitive to short periods of jitter. We keep tracking via the IMU observations but must eliminate their cumulative errors. Besides, the gyroscope can capture and generate notable signal fluctuations when the vehicle changes lanes. 
 
 \textbf{Image.}
-
+The image data is presented as probability after the inference of the intention recognition classification network. A sequence of pictures provides a sequence of probabilities, but not all of them are useful. We only requir a handful of accurate outcomes in this sequence of probabilities.
 
 Figure. \ref{fig:data_freq} shows the timestamps of different data appearing in a fork tracing process. The GPS and IMU data are continuous, while images are opportunistic. Moreover, the lane change information obtained from the IMU is even more unstable since lane-changing behavior does not always exist. 
+Given this, we consider using the particle filter based on the Monte Carlo framework to combine these data and construct an efficient and robust vehicle tracking framework.
 
 \section{System Overview}\label{sec:overview}
 This paper proposes an accurate and real-time tracking framework for yawing detection.
@@ -225,15 +232,6 @@ Beside the intention recognition from images, another core of our system is fusi
 \subsubsection{Data Processing}
 \textbf{Inertial sensors. }
 Our method mainly uses the data of gravity sensor, acceleration sensor and gyroscope sensor inside the mobile phone to estimate the driving trajectory of the vehicle. We transform the mobile phone coordinate system to the car coordinate system \cite{xiao2021many, gao2017smartphone}, and the vehicle trajectory can be obtained by $\Vec{x(t)}=\iint\Vec{a(t)}\mathrm{d}t$. We use the sliding window to detect the vehicle turning events. The window will obtain the change of the z-axis of the gyroscope in a period of time, and then we calculate the difference between the maximum and minimum points in the window. When the midpoint of the window is at the extreme point and the extreme point difference is greater than the threshold, the action of the vehicle is identified as a turn and will be marked. Turning detection is mainly used for yawing recognition in fork road scenes.
-
-\textbf{GPS and road information.}
-When people drive the car, the smartphone will continuously collect GPS data such as longitude and latitude, and the collected GPS data will form the trajectory of the vehicle. The system will project the GPS points to the best matching road in sequence (As shown in Fig. \ref{fig:projection}) and combine GPS data with road information. When the system detects that the distance between the GPS point position and the starting point of the elevated or fork road is less than a certain value, the yawing detection is triggered.
-
-\begin{figure}[htbp]
-    \centerline{\includegraphics[width=0.3\textwidth]{fig/projection.pdf}}
-    \caption{The blue point is the GPS point, and the red point is the projection point.}
-    \label{fig:projection}
-\end{figure}
 
 \textbf{Image prediction result.}
 We improve the confidence of image prediction results (described in \ref{sec:image}) by reducing recall instead of directly using them. 
